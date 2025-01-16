@@ -1,0 +1,222 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Annotation Tool</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .canvas-container {
+            position: relative;
+            margin: 20px 0;
+        }
+        #annotationCanvas {
+            border: 1px solid #ccc;
+            cursor: crosshair;
+        }
+        .toolbar {
+            margin: 10px 0;
+        }
+        .camera-feeds {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .camera-feed {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Image Annotation Tool</h1>
+        
+        <!-- Camera Controls -->
+        <div class="camera-feeds">
+            {% for i in range(3) %}
+            <div class="camera-feed">
+                <h3>Camera {{ i + 1 }}</h3>
+                <button class="btn btn-primary capture-btn" data-camera="{{ i }}">Capture</button>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Annotation Tools -->
+        <div class="toolbar">
+            <button class="btn btn-secondary" id="boxBtn">Draw Box</button>
+            <button class="btn btn-secondary" id="segmentBtn">Segment</button>
+            
+            <!-- Label Selectors -->
+            <select class="form-select d-inline-block w-auto" id="typeSelect">
+                <option value="">Select Type</option>
+                {% for type in categories.type %}
+                <option value="{{ type }}">{{ type }}</option>
+                {% endfor %}
+            </select>
+            
+            <select class="form-select d-inline-block w-auto" id="brandSelect">
+                <option value="">Select Brand</option>
+                {% for brand in categories.brand %}
+                <option value="{{ brand }}">{{ brand }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Canvas for Annotation -->
+        <div class="canvas-container">
+            <canvas id="annotationCanvas" width="800" height="600"></canvas>
+        </div>
+
+        <!-- Image Selection -->
+        <div class="mb-3">
+            <select class="form-select" id="imageSelect">
+                <option value="">Select Image</option>
+            </select>
+        </div>
+
+        <button class="btn btn-success" id="saveBtn">Save Annotations</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        let currentMode = 'box';
+        let isDrawing = false;
+        let startX, startY;
+        let annotations = [];
+        
+        const canvas = document.getElementById('annotationCanvas');
+        const ctx = canvas.getContext('2d');
+        let currentImage = null;
+
+        // Load image list
+        function loadImages() {
+            fetch('/images')
+                .then(response => response.json())
+                .then(images => {
+                    const select = document.getElementById('imageSelect');
+                    select.innerHTML = '<option value="">Select Image</option>';
+                    images.forEach(image => {
+                        const option = document.createElement('option');
+                        option.value = image;
+                        option.textContent = image;
+                        select.appendChild(option);
+                    });
+                });
+        }
+
+        // Camera capture
+        document.querySelectorAll('.capture-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const cameraId = this.dataset.camera;
+                fetch(`/capture/${cameraId}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            loadImages();
+                        }
+                    });
+            });
+        });
+
+        // Image selection
+        document.getElementById('imageSelect').addEventListener('change', function() {
+            if (this.value) {
+                currentImage = new Image();
+                currentImage.onload = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+                };
+                currentImage.src = `/static/images/${this.value}`;
+            }
+        });
+
+        // Drawing modes
+        document.getElementById('boxBtn').addEventListener('click', () => currentMode = 'box');
+        document.getElementById('segmentBtn').addEventListener('click', () => currentMode = 'segment');
+
+        // Canvas drawing
+        canvas.addEventListener('mousedown', function(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+        });
+
+        canvas.addEventListener('mousemove', function(e) {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (currentImage) {
+                ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+            }
+            
+            if (currentMode === 'box') {
+                ctx.strokeStyle = '#FF0000';
+                ctx.strokeRect(startX, startY, x - startX, y - startY);
+            } else {
+                // Simplified segmentation visualization
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = '#00FF00';
+                ctx.stroke();
+            }
+        });
+
+        canvas.addEventListener('mouseup', function(e) {
+            if (!isDrawing) return;
+            isDrawing = false;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const annotation = {
+                type: document.getElementById('typeSelect').value,
+                brand: document.getElementById('brandSelect').value,
+                mode: currentMode,
+                coordinates: {
+                    x1: startX,
+                    y1: startY,
+                    x2: x,
+                    y2: y
+                }
+            };
+            
+            annotations.push(annotation);
+        });
+
+        // Save annotations
+        document.getElementById('saveBtn').addEventListener('click', function() {
+            const imageFile = document.getElementById('imageSelect').value;
+            if (!imageFile || annotations.length === 0) return;
+            
+            const data = {
+                image: imageFile,
+                annotations: annotations
+            };
+            
+            fetch('/save_annotation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Annotations saved successfully!');
+                    annotations = [];
+                }
+            });
+        });
+
+        // Initial load
+        loadImages();
+    </script>
+</body>
+</html>
