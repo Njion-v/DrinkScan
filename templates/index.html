@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Camera Capture</title>
+    <style>
+        .video-container {
+            margin-bottom: 20px;
+        }
+        .video-container img {
+            width: 100%;
+            height: auto;
+        }
+        #capture-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Multi-Camera Capture</h1>
+    <div id="video-streams">
+        {% for camera_id in camera_ids %}
+        <div class="video-container">
+            <img src="{{ url_for('video_feed', camera_id=camera_id) }}" alt="Camera {{ camera_id }}">
+        </div>
+        {% endfor %}
+    </div>
+    <button id="capture-button" onclick="captureImages()">Capture Images</button>
+
+    <script>
+        function captureImages() {
+            fetch('/capture', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Images captured successfully!');
+                } else {
+                    alert('Failed to capture images.');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
