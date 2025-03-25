@@ -3,9 +3,9 @@ from ultralytics import YOLO
 import cv2
 import matplotlib.pyplot as plt
 
-model = YOLO("models/Yolov11-24.2/detect/train/weights/best.pt")
+model = YOLO(r"D:\AI_Progress\3D_Computer_Vision\scr\models\Yolov11-bread_beverage\bread_full_v1.pt")
 
-image_path = "test/test_imgs/camera_0_20250221_140245.jpg"
+image_path = r"D:\AI_Progress\3D_Computer_Vision\captured_data\test\test_imgs\0809_F2_0809_camera_2_20250118_120516.jpg"
 
 # Đọc ảnh
 image = cv2.imread(image_path)

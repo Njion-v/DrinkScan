@@ -8,10 +8,8 @@ source_folder = "captured_images_new"
 destination_folders = {
     "camera_0": "cam_0",
     "camera_1": "cam_1",
-    "camera_3": "cam_3",
-    
+    "camera_3": "cam_3", 
 }
-
 # Tạo các thư mục đích nếu chưa tồn tại
 for folder in destination_folders.values():
     os.makedirs(folder, exist_ok=True)
