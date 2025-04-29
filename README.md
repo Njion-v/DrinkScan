@@ -1,4 +1,4 @@
-# DishScan - YOLOv11 applied for pastry recognition
+# DrinkScan - YOLOv11 applied for pastry recognition
 
 ### Set up the dependencies
 
