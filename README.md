@@ -1,4 +1,4 @@
-# DishScan - YOLOv11 applied for pastry recognition
+# DrinkScan - YOLOv11 applied for pastry recognition
 
 ### Set up the dependencies
 
@@ -57,5 +57,4 @@ python evaluation.py
 
 - The DrinkScan YOLO model can be run as an API via Flask framework. The details is at [Flask API Deployment](./flask-app/README.md)
 
-### Development
 
