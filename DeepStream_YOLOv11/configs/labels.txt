@@ -1,0 +1,12 @@
+beer_tiger
+bottle
+can
+cocacola
+cocacola_light
+green_tea
+pepsi
+red_bull
+revive_lemon_salt
+revive_regular
+strawberry_sting
+vinh_hao_water
